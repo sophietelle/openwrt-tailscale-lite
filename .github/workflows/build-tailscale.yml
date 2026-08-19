@@ -30,19 +30,22 @@ jobs:
         id: define_tags
         run: |
           # --- 追加タグ定義 ---
-          # must
-          TAGS_BASE="osrouter,debug,unixsocketidentity"
+          # must (debug dropped: pure overhead on embedded devices)
+          TAGS_BASE="osrouter,unixsocketidentity"
           
           # networks (netstack depends on clientmetrics)
           #TAGS_NET="dns,listenrawdisco,portmapper"
-          TAGS_NET="clientmetrics,dns,listenrawdisco,netstack,portmapper,routecheck"
+          # routecheck dropped: multi-path overlap detection, 774 KB raw
+          TAGS_NET="clientmetrics,dns,listenrawdisco,netstack,portmapper"
           
           # manage (bakedroots omitted: relies on runtime ca-bundle from Depends;
-          # c2n auto-resolved as dependency of advertiseroutes)
-          TAGS_MANAGE="oauthkey"
+          # c2n auto-resolved as dependency of advertiseroutes;
+          # oauthkey dropped: free with c2n, unused if not using OAuth auth flow)
+          TAGS_MANAGE=""
           
-          # os
-          TAGS_OS="iptables,linkspeed,linuxdnsfight"
+          # os (linkspeed dropped: cosmetic TUN link speed, 16 KB;
+          # linuxdnsfight dropped: inotify resolv.conf watcher, OpenWrt uses dnsmasq, 41 KB)
+          TAGS_OS="iptables"
           
           # optimize (gro depends on clientmetrics) (ipnbus is required for 23.05-)
           TAGS_OPT="gro,ipnbus"
@@ -50,11 +53,12 @@ jobs:
           # features
           TAGS_FEAT="advertiseexitnode,advertiseroutes,useexitnode,useroutes"
           
-          # utilities (ssh depends on clientmetrics)
-          TAGS_UTIL="wakeonlan"
+          # utilities (wakeonlan dropped: 8 KB, niche use case)
+          TAGS_UTIL=""
           
-          # 全タグをカンマ区切りで結合
+          # 全タグをカンマ区切りで結合 (空の変数は除外)
           ALL_TAGS="${TAGS_BASE},${TAGS_NET},${TAGS_MANAGE},${TAGS_OS},${TAGS_OPT},${TAGS_FEAT},${TAGS_UTIL}"
+          ALL_TAGS=$(echo "$ALL_TAGS" | sed 's/,,*/,/g; s/^,//; s/,$//')
           
           echo "Tags defined: $ALL_TAGS"
           echo "tags=$ALL_TAGS" >> $GITHUB_OUTPUT
