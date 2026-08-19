@@ -33,9 +33,11 @@ jobs:
           # must (debug dropped: pure overhead on embedded devices)
           TAGS_BASE="osrouter,unixsocketidentity"
           
-          # networks (netstack depends on clientmetrics)
-          #TAGS_NET="dns,listenrawdisco,portmapper"
-          TAGS_NET="clientmetrics,dns,listenrawdisco,netstack,portmapper,routecheck"
+          # networks (netstack+gro dropped: userspace TCP/IP stack, only used with
+          # --tun=userspace-networking; OpenWrt uses kernel-mode TUN by default;
+          # clientmetrics was only needed as a gro dep, dropping it too)
+          #TAGS_NET="clientmetrics,dns,listenrawdisco,netstack,portmapper,routecheck"
+          TAGS_NET="dns,listenrawdisco,portmapper,routecheck"
           
           # manage (bakedroots omitted: relies on runtime ca-bundle from Depends;
           # c2n auto-resolved as dependency of advertiseroutes)
@@ -44,8 +46,9 @@ jobs:
           # os
           TAGS_OS="iptables,linkspeed,linuxdnsfight"
           
-          # optimize (gro depends on clientmetrics) (ipnbus is required for 23.05-)
-          TAGS_OPT="gro,ipnbus"
+          # optimize (gro depended on netstack+clientmetrics, both dropped;
+          # ipnbus is required for 23.05-)
+          TAGS_OPT="ipnbus"
           
           # features
           TAGS_FEAT="advertiseexitnode,advertiseroutes,useexitnode,useroutes"
