@@ -10,7 +10,7 @@ Automated build of a stripped-down, UPX-compressed [Tailscale](https://tailscale
   - **Multicall Binary**: Combines `tailscale` and `tailscaled` CLI into a single binary to save space.
 - **Official Build Standards**:
   - Built using Tailscale's official `build_dist.sh` script, with the required feature tags added and the `--extra-small --box` flags.
-  - Compressed using `upx --best --lzma` as recommended in the official documentation.
+  - Stripped with `strip --strip-all` and compressed using `upx --ultra-brute --lzma`.
 
 ## Supported Architectures
 
