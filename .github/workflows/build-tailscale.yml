@@ -37,8 +37,9 @@ jobs:
           #TAGS_NET="dns,listenrawdisco,portmapper"
           TAGS_NET="clientmetrics,dns,listenrawdisco,netstack,portmapper,routecheck"
           
-          # manage
-          TAGS_MANAGE="bakedroots,oauthkey"
+          # manage (bakedroots omitted: relies on runtime ca-bundle from Depends;
+          # c2n auto-resolved as dependency of advertiseroutes)
+          TAGS_MANAGE="oauthkey"
           
           # os
           TAGS_OS="iptables,linkspeed,linuxdnsfight"
@@ -170,8 +171,8 @@ jobs:
           go-version-file: tailscale-src/go.mod
           cache-dependency-path: tailscale-src/go.sum
 
-      - name: Install UPX
-        run: sudo apt-get install -y upx-ucl
+      - name: Install UPX and binutils
+        run: sudo apt-get install -y upx-ucl binutils
 
       - name: Build Lightweight Tailscale
         working-directory: tailscale-src
@@ -191,9 +192,16 @@ jobs:
           echo "Building tailscale.combined for $GOARCH using build_dist.sh..."
           ./build_dist.sh --extra-small --box -o ../tailscale.combined ./cmd/tailscaled
 
+      - name: Strip non-allocating sections
+        run: |
+          # Go's -s -w only drops symbols + DWARF; binutils strip --strip-all also
+          # removes the build id, comment, and other non-allocating ELF sections
+          # that UPX can't compress. Works on any ELF arch (strip is format-driven).
+          strip --strip-all tailscale.combined || echo "Warning: strip failed for ${{ matrix.goarch }}; keeping unstripped binary."
+
       - name: Compress binaries with UPX
         run: |
-          upx --best --lzma tailscale.combined || echo "Warning: UPX compression failed for tailscale.combined (Arch: ${{ matrix.goarch }}). Using uncompressed binary."
+          upx --ultra-brute --lzma tailscale.combined || echo "Warning: UPX compression failed for tailscale.combined (Arch: ${{ matrix.goarch }}). Using uncompressed binary."
 
       - name: Package into IPK and APK
         env:
@@ -380,7 +388,7 @@ jobs:
             
             **Build Tags:** `${{ needs.init.outputs.build_tags }}`
             **Build Flags:** `--extra-small --box`
-            **Compression:** `upx --best --lzma`
+            **Compression:** `strip --strip-all` + `upx --ultra-brute --lzma`
           files: |
             artifacts/*.ipk
             artifacts/*.apk
